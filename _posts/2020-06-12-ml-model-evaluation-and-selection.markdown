@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "《机器学习》笔记：模型评估与选择"
+title:  "ML 笔记：模型评估与选择"
 date:   2020-06-12 16:00:00 +0800
 categories: machine-learning 
 ---
