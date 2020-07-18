@@ -23,14 +23,14 @@ categories: machine-learning
 
 [McCulloch and Pitts, 1943] 将上述情形抽象为 *M-P 神经元模型*。该模型中，神经元接收来自其它 n 个神经元通过 **带权重的连接（connection）** 传递过来的输入信号，接收的总输入值将于神经元的阈值比较，然后通过 *激活函数（activation function）* 产生神经元的输出。
 
-![mp-neuron](/assets/images/2007/mp-neuron.png)
+![mp-neuron](/assets/images/2007/mp-neuron.png#center){:width='480px'}
 
 从计算机科学的角度看，只需将一个神经网络视为包含了许多参数的数学模型，这个模型由若干个函数，例如 $$ y_i = f(\sum_i w_i x_i - \theta_i) $$ 相互嵌套而得。有效的神经网络学习大多以数学证明为支撑。
 
 
 # 感知机与多层网络
 
-![perceptron](/assets/images/2007/perceptron.png){:width="50%"}
+![perceptron](/assets/images/2007/perceptron.png#center){:width='360px'}
 
 *感知机（Perceptron）* 由两层神经元组成，输入层接收外界输入信号后传递给输出层，输出层是 M-P 神经元，亦称 *阈值逻辑单元（threshold logic unit）*。
 
@@ -52,7 +52,7 @@ $$ \Delta w_i = \eta (y - \hat y) x_i $$,
 
 更一般的，常见的神经网络是所示的层级结构， **每层神经元与下一层神经元全互联** ，神经元之间不存在同层连接，也不存在跨层连接，这样的神经网络结构通常称为 *多层前馈神经网络（multi-layer feedforward neural networks）*。神经网络的学习过程，就是根据训练数据来调整神经元之间的 *连接权重（connection weight）*  以及每个功能神经元的阈值。
 
-    注: “前馈” 并不意味着网络中信号不能向后传，而是指网络拓扑结构上不存在环或回路。
+注意，“前馈” 并不意味着网络中信号不能向后传，而是指网络拓扑结构上不存在环或回路。
 
 
 # 误差逆传播算法

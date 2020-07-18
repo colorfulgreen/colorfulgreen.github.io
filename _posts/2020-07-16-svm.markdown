@@ -1,0 +1,174 @@
+---
+layout: post
+title:  "ML 笔记：支持向量机"
+date:   2020-07-16 09:30:00 +0800
+categories: machine-learning 
+---
+
+目录
+- [1 间隔与支持向量](#间隔与支持向量)
+- [2 对偶问题](#对偶问题)
+  - [2.1 相关数学概念](#相关数学概念)
+  - [2.2 SVM 基本型求解](#SVM-基本型求解)
+- [3 核函数](#核函数)
+- [4 软间隔与正则化](#软间隔与正则化)
+- [5 支持向量回归](#支持向量回归)
+- [6 核方法](#核方法)
+
+## 间隔与支持向量
+
+考虑分类问题，分类学习最基本的想法是基于训练集在样本空间中找到一个划分超平面，将不同类别的样本分开。但能将训练样本分开的划分超平面可能有很多，应该去找哪一个呢？
+
+![Multiple Divided Hyperplanes](/assets/images/2007/multiple-divided-hyperplanes.png#center){:width="250px"}
+*图 存在多个划分超平面将两类训练样本分开*
+
+直观上看，应该去找位于两类训练样本“正中间”的划分超平面。例如，由于训练集的局限性或噪声的因素，上图中训练集外的样本可能更接近两个类的分割界，这将使许多划分超平面出现错误，而红色的超平面受影响最小。换言之，这个划分超平面所产生的 *分类结果是鲁棒的* ，对未见示例的泛化能力最强。
+
+在样本空间中，*划分超平面* 可通过线性方程
+
+$$ \bm w^T \bm x + b = 0 $$
+
+描述，记为 $$ (\bm w, b) $$。其中 $$ \bm w = (w_1; w_2; \dots; w_d) $$ 为法向量，决定了超平面的方向；b 为位移项，决定了超平面与原点之间的距离。
+
+样本空间中任意点 $$\bm x$$ 到超平面 $$(\bm x, b)$$ 的距离 $$ r = \frac {|\bm w^T \bm x + b|} {||\bm w||}$$。推导过程为：  
+![Distance to Hyperplane](/assets/images/2007/distance-to-hyperplane.png#center){:width='300px'}
+
+$$ 
+       \because \bm x = \bm x_0 + r \frac {\bm w} {\| \bm w \|}, \bm w^T \bm x_0 + b = 0 \\ 
+       \therefore \bm w^T \bm x + b = \bm w^T x_0 + b + r \frac {\bm w^T \bm w} {\| \bm w \|} 
+                                    = r {\| \bm w \|} \\
+       \therefore |r| = \frac {|\bm w^T \bm x + b|} {||\bm w||}
+$$
+
+
+若超平面 $$ (\bm w', b') $$ 能将训练样本正确分类，即对于 $$ (\bm x_i, y_i) \in D $$，有  
+
+$$ \begin{cases} \bm w'^T \bm x_i + b' > 0, y_i=+1 \\ 
+                 \bm w'^T \bm x_i + b' < 0, y_i=-1 
+   \end{cases} $$ 
+
+则存在缩放变换，使得 (1.1) 
+
+$$ \begin{cases} \bm w^T \bm x_i + b \geq +1, y_i=+1 \\ 
+                 \bm w^T \bm x_i + b \leq -1, y_i=-1
+   \end{cases} $$
+
+    Q: 缩放变换？
+
+距离超平面最近的几个训练样本点式 (1.1) 中等号成立，它们被称为 *支持向量（support vector）*，两个异类支持向量到超平面的距离之和 $$ \gamma = \frac 2 {\|\bm w\|} $$ 被称为 *间隔（margin）* 。
+
+欲找到具有 *最大间隔（maximum margin）* 的划分超平面，就是要找到满足约束 (1.1) 的参数 $$\bm w$$ 和 b，使得 $$ \gamma $$ 最大，即
+
+$$ \max_{\bm w,b} \frac 2 {\| \bm w \|} \text{ s.t. } y_i(\bm{w}^T \bm x_i + b) \geq 1 \text{, } i = 1,2,\dots,m $$
+
+其等价于 (1.2)
+
+$$ \min_{\bm w,b} \frac 1 2 {\| \bm w \|}^2 \text{ s.t. } y_i(\bm{w}^T \bm x_i + b) \geq 1 \text{, } i = 1,2,\dots,m $$ 
+
+这就是 *支持向量机的基本型* 。
+
+
+## 对偶问题 
+
+式 (1.2) 本身是一个 *凸二次规划（convex quadratic programming）* 问题，能直接用现成的优化计算包求解，我们也可以通过对偶问题更高效地求解。
+
+### 相关数学概念
+
+#### 凸函数、凸优化问题、凸二次规划
+
+*函数 $$ f: \bm R^n \to \bm R $$ 是凸的* ，如果 $$ \text{dom} f $$ 是凸集，且对于任意 $$ x,y \in \text{dom} f $$ 和任意 $$ 0 \leq \theta \leq 1 $$，有
+
+$$ f(\theta x + (1-\theta)y) \leq \theta f(x) + (1-\theta) f(y) $$
+
+注意，同济大学出版的《高等数学》教材中，对函数凹凸性的定义与此处相反 [[维基百科](https://zh.wikipedia.org/wiki/%E5%87%B9%E5%87%BD%E6%95%B0#%E6%95%99%E6%9D%90%E5%A4%B1%E8%AF%AF)]。
+
+*凸优化问题* 是形如
+
+$$  \begin{aligned}
+        \min         & f_0(x)  \\
+        \text{s.t. } & f_i(x) \leq 0, i = 1, \dots, m \\
+                     & a_i^T x = b_i, i = 1, \dots, p
+    \end{aligned} $$
+
+的问题，其中 $$ f_0, \dots, f_m $$ 为凸函数。凸优化问题有三个要求：
+* 目标函数必须是凸的，
+* 不等式约束条件必须是凸的，
+* 等式约束函数必须是仿射的。
+
+当凸优化问题的 **目标函数是凸二次型并且约束函数为仿射** 时，该问题称为 *凸二次规划（QP）* ，可以表述为
+
+$$  \begin{aligned}
+        \min         & \frac 1 2 x^T Px + q^T x + r  \\
+        \text{s.t. } & Gx \preceq h \\
+                     & a x = b
+    \end{aligned} $$
+
+的形式，其中 $$ P \in S_+^n, G \in R^{m \times n}, A \in R^{p \times n} $$。在二次规划中，我们在多面体上极小化一个凸二次函数。
+
+
+    Q: 凸集；仿射函数
+
+#### Lagrange 函数、Lagrange 对偶函数 
+
+Lagrange 对偶的基本思想是在目标函数中考虑约束条件，即添加约束条件的加权和，得到增广的目标函数。
+
+考虑标准形式的优化问题： 
+
+$$ \begin{aligned}
+     \min         & f_0(x) \\
+     \text{s.t. } & f_i(x) \leq 0, i = 1, \dots, m \\
+                  & h_i(x) = 0, i = 1, \dots, p,
+   \end{aligned} $$
+
+注意，这里没有假设其是凸优化问题。
+
+定义其 *Lagrange 函数* L：$$ R^n \times R^m \times R^p \to R $$ 为
+
+$$ L(x, y, v) = f_0(x) + \sum_{i=1}^m \lambda_i f_i(x) + \sum_{i=1}^p v_i h_i(x) $$
+
+其中，定义域为 $$ \text{dom} L = \mathcal D \times R^m \times R^p $$。$$\lambda_i$$ 称为第 i 个不等式约束 $$ f_i(x) \leq 0 $$ 对应的 *Lagrange 乘子*，$$v_i$$ 称为第 i 个等式约束 $$ h_i(x) = 0 $$ 对应的 *Lagrange 乘子* 。向量 $$ \lambda $$ 和 $$ v $$ 称为 *对偶变量* 或者 *Lagrange 乘子向量*。
+
+定义 *Lagrange 对偶函数* $$ g: R^m \times R^p \to R $$ 为 Lagrange 函数关于 $$ x $$ 取得的最小值，即对 $$ \lambda \in R^m, v \in R^p $$，有
+
+$$ g(\lambda, v) = \inf_{x \in \mathcal D} L(x, \lambda, v) = \inf_{x \in \mathcal D} (f_0(x) + \sum_{i=1}^m \lambda_i f_i(x) + \sum_{i=1}^p v_i h_i(x))$$
+
+因为对偶函数是一族关于 $$ (\lambda, v) $$ 的仿射函数的逐点下确界，所以即使原问题不是凸的，对偶函数也是凹函数。
+
+    Q：为什么逐点下确界形成的函数一定是凹函数？
+
+### SVM 基本型求解
+
+对式（1.2）的每条约束添加 Lagrange 乘子 $$\alpha_i \geq 0 $$，则 SVM 基本型的 Lagrange 函数可写为 (2.1)
+
+$$ L(\bm w, b, \bm \alpha) = \frac 1 2 {\| \bm w \|}^2 + \sum_{i=1}^m \alpha_i (1-y_i(\bm w^T \bm x_i + b)) $$
+
+其中 $$ \bm \alpha = (\alpha_1; \alpha_2; \dots; \alpha_m) $$.
+
+令 $$ L(\bm w, b, \bm \alpha) $$ 对 $$ \bm w $$ 和 $$ b $$ 的偏导为零可得
+
+$$ \bm w = \sum_{i=1}^m \alpha_i y_i \bm x_i \\
+   0 = \sum_{i=1}^m \alpha_i y_i $$
+
+代入式（2.1）得到 SVM 基本型的对偶问题
+
+$$ \begin{aligned}
+      \max_{\alpha} & \sum_i^m \alpha_i - \frac 1 2 \sum_{i=1}^m \sum_{j=1}^m \alpha_i \alpha_j y_i y_j \bm x_i^T \bm x_j  \\
+      \text{s.t.}   & \sum_{i=1}^m \alpha_i y_i = 0,   \\
+                    & \alpha_i \geq 0, i = 1,2,\dots,m \\
+   \end{aligned} $$
+
+解出 $$ \bm \alpha $$ 后，求出 $$ \bm w $$ 与 b 即可得到模型
+
+$$ \begin{aligned}
+     f(\bm x) & = \bm w^T \bm x + b \\
+              & = \sum_{i=1}^m \alpha_i y_i \bm x_i^T \bm x_i + b 
+   \end{aligned}
+$$
+
+
+## 核函数
+## 软间隔与正则化
+## 支持向量回归
+## 核方法
+
+
