@@ -30,6 +30,22 @@ $$ f(\bm x) = \bm w^T \bm x + b $$
 
 ## 线性回归
 
+*线性回归（linear regression）* 试图学得一个线性模型以尽可能准确地预测实值输出标记，即
+
+$$ f(\bm x_i) = \bm w^T x_i + b $$ ，使得 $$ f(\bm x_i) \sim y_i $$
+
+回归任务中最常用的性能度量是均方误差。为便于讨论，把 $$ \bm w $$ 和 b 吸收入向量形式 $$ \hat \bm w = (\bm w; b) $$，把数据集 D 表示为一个 $$ m \times (d + 1) $$ 大小的矩阵 $$ \bm X $$，其中每行对应于一个示例，行中前 d 个元素对应于示例的 d 个属性值，最后一个元素恒置为 1，则有
+
+$$ \hat \bm w^* = \arg \min_{\hat \bm w} {(\bm y - \bm X \hat \bm w)}^T (\bm y - \bm X \hat w) $$
+
+均方误差的几何意义是 *欧氏距离（Euclidean distance）* 。基于均方误差最小化来进行模型求解的方法称为 *最小二乘法（least square method）*。在线性回归中，最小二乘法就是试图找到一条直线，使所有样本到直线上的欧氏距离之和最小。
+
+求解 w 和 b 使 $$E_{\hat w} = {(y-X \hat w)}^T(y - Xw)$$ 最小化的过程，称为线性回归模型的最小二乘 *参数估计（parameter estimation）*。令
+
+$$ \frac {\partial E_{\hat w}} {\partial \hat w} = 2 X^T(X \hat w - y) = 0 $$
+
+可得 $$ \hat w $$ 最优解的 *闭式（closed-form）解*。由于涉及矩阵逆的计算，下面做一个简单讨论。
+
 ## 对数几率回归
 
 ## 线性判别分析
