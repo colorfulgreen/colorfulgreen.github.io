@@ -10,6 +10,9 @@ categories: machine-learning
 - [2 感知机与多层网络](#感知机与多层网络)
 - [3 误差逆传播算法](#误差逆传播算法)
 - [4 全局最小与局部极小](#全局最小与局部极小)
+- [5 激活函数](#激活函数)
+- [6 损失函数](#损失函数)
+- [7 优化器](#优化器)
 
 神经网络的定义[Kohonen, 1988]：
 
@@ -53,6 +56,23 @@ $$ \Delta w_i = \eta (y - \hat y) x_i $$,
 更一般的，常见的神经网络是所示的层级结构， **每层神经元与下一层神经元全互联** ，神经元之间不存在同层连接，也不存在跨层连接，这样的神经网络结构通常称为 *多层前馈神经网络（multi-layer feedforward neural networks）*。神经网络的学习过程，就是根据训练数据来调整神经元之间的 *连接权重（connection weight）*  以及每个功能神经元的阈值。
 
 注意，“前馈” 并不意味着网络中信号不能向后传，而是指网络拓扑结构上不存在环或回路。
+
+### 例：两层神经网络模型
+
+* 用 Sigmoid, ReLU 作为激活函数
+* 分类时用交叉熵作为损失函数
+
+$$ \begin{aligned}
+x = \text{raw input} \quad & & \\
+z_1 = W_1^T x + b_{11} \quad & z_2 = W_2^T x + b_{12} & z_3 = W_3^T x + b_{13} \\
+h_1 = ReLU(z_1) \quad & h_2 = ReLU(z_2) & h_3 = ReLU(z_3) \\
+\theta_1 = U_1^T h_1 + b_{21} \quad & \theta_2 = U_2^T h_2 + b_{22} & \theta_3 = U_3^T h_3 + b_{23}
+\end{aligned} 
+\\
+[\hat y_1, \hat y_2, \hat y_3] = softmax(\theta_1, \theta_2, \theta_3) \\ 
+L_{ce}(\hat y, y) = -\sum_{j=1}^k y_j \log \hat y_j
+$$
+
 
 
 ## 误差逆传播算法
@@ -153,3 +173,111 @@ $$ E = \lambda \frac 1 m \sum_{k=1}^m E_k + (1-\lambda) \sum_i w_i^2 $$
     Q：随机梯度下降在计算梯度时加入了什么随机因素？如果加入的随机因素足以使函数跳到其它局部极小，是否会引起震荡？
 
 此外，*遗传算法（genetic algorithms）* [Goldberg, 1989] 也常用来训练神经网络以更好地逼近全局最小。需注意的是，上述用于跳出局部极小的技术大多是启发式，理论上尚缺乏保障。
+
+## 激活函数
+
+### 整流/修正线性单元ReLU
+
+$$ ReLU(x) = max\{x, 0\} \\
+   ReLU'(x) = 1[x>0] = sign(ReLU(x)) $$
+
+## 损失函数
+
+#### Softmax: 将给定的任意一组值映射成一个概率分布
+
+$$ \sigma(\bf z) = [\frac {e^{z_1}} {\sum_{k=1}^K e_{z_k}}, 
+                  \frac {e^{z_2}} {\sum_{k=1}^K e_{z_k}},
+                  \dots,
+                  \frac {e^{z_K}} {\sum_{k=1}^K e_{z_k}}] $$
+
+![Softmax](/assets/images/2008/softmax.png#center){:width='200px'}
+
+#### 负对数似然损失函数
+
+$$ L(\bf y, f(\bf x, \theta)) = - \sum_{c=1}^C y_c \log f_c(\bf x, \theta) $$
+
+例：对于一个三分类问题，真实类别为 [0, 0, 1]，预测的类别概率为 [0.3, 0.3, 0.4]，则
+
+$$ L(\theta) = - (0 \times \log(0.3) + 0 \times \log(0.3) + 1 \times log(0.4)) = - \log(0.4) $$
+
+## 优化器
+
+### 梯度下降法
+
+传统的优化方法是使用最小二乘法计算解析解，但有时面临着模型更复杂且样本量庞大的问题，当 **样本个数大于特征个数** 时，问题便转换为求解 **超定方程组** 的问题，相比使用最小二乘法求解大维数逆矩阵的方法，采用梯度迭代的梯度下降算法更具备优势。
+
+梯度下降是指，在给定待优化的模型参数 $$ \theta \in R^d $$ 和目标函数 $$ J(\theta) $$ 后，算法通过沿梯度的相反方向更新参数 $$ \theta $$ 来最小化 $$ J(\theta) $$。对于每一个时刻t，我们可以用下述步骤描述梯度下降的流程。
+
+1. 计算目标函数关于参数的梯度：
+
+    $$ g_t = \Delta_\theta J(\theta) $$
+
+2.  根据历史梯度计算一阶和二阶动量：
+
+    $$ m_t = \phi(g_1, g_2, \dots, g_t) \\
+       v_t = \psi(g_1, g_2, \dots, g_t) $$
+
+3. 更新模型参数，其中 $$\epsilon$$ 为平滑项，防止分母为零，通常取 $$ 1e-8 $$.
+
+$$ \theta_{t+1} = \theta_t - \frac 1 {\sqrt {v_t + \epsilon}} m_t $$
+
+有三种梯度下降的变种：批梯度下降算法、随机梯度下降算法和小批量梯度下降算法。三种变种在计算优化目标时，所需的数据量不同。根据数据量的不同，我们需要在参数更新的精度和耗费时间两方面作出权衡。
+
+#### 批梯度下降算法（Batch gradient descent, BGD）
+
+批量梯度下降算法每次更新时，在整个训练集上计算损失函数关于参数 $$\theta$$ 的梯度：
+
+$$ \theta = \theta - \eta \cdot \nabla_\theta J( \theta) $$
+
+因此，批梯度下降法的速度很慢。另外，批梯度下降无法处理超过内存容量限制的数据集。同样，批梯度下降算法也不能在线更新模型，即在运行过程中，不能增加新的样本。
+
+在代码中，批量梯度下降算法看起来像这样：
+
+    for i in range(nb_epochs):
+        params_grad = evaluate_gradient(loss_function, data, params)
+        params = params - learning_rate * params_grad
+
+#### 随机梯度下降法（Stochastic gradient descent, SGD）
+
+随机梯度下降算法根据每一条训练示例 $$x^{(i)}$$ 和标签 $$y^{(i)}$$ 更新参数：
+
+$$ \theta = \theta - \eta \cdot \nabla_\theta J( \theta; x^{(i)}; y^{(i)}) $$
+
+对于大数据集，因为批梯度下降法在每一个参数更新之前，会对相似的样本计算梯度，所以在计算过程中会有冗余。而SGD在每一次更新中只执行一次，从而消除了冗余。因而，通常SGD的运行速度更快，同时，可以用于在线学习。SGD以高方差频繁地更新，导致目标函数出现如下图所示的剧烈波动。
+
+
+<figure>
+  <img src="/assets/images/2008/sgd_fluctuation.png" width="240px"  />
+  <figcaption>Image: SGD fluctuation (Source: <a href="https://upload.wikimedia.org/wikipedia/commons/f/f3/Stogra.png">Wikipedia</a>)</figcaption>
+</figure>
+
+与批梯度下降法的收敛会使得损失函数陷入局部最小相比，由于SGD的波动性，一方面，波动性使得SGD可以跳到新的和潜在更好的局部最优。另一方面，这使得最终收敛到特定最小值的过程变得复杂，因为SGD会一直持续波动。然而，已经证明当我们缓慢减小学习率，SGD与批梯度下降法具有相同的收敛行为，对于非凸优化和凸优化，可以分别收敛到局部最小值和全局最小值。与批梯度下降的代码相比，SGD的代码片段仅仅是在对训练样本的遍历和利用每一条样本计算梯度的过程中增加一层循环。注意，如6.1节中的解释，在每一次循环中，我们打乱训练样本。
+
+    for i in range(nb_epochs):
+        np.random.shuffle(data)
+        for example in data:
+            params_grad = evaluate_gradient(loss_function, example, params)
+            params = params - learning_rate * params_grad
+
+#### 小批量梯度下降法（Mini-batch gradient descent）
+
+小批量梯度下降法最终结合了上述两种方法的优点，在每次更新时使用n个小批量训练样本：
+
+$$ \theta = \theta - \eta \cdot \nabla_\theta J( \theta; x^{(i:i+n)}; y^{(i:i+n)}) $$
+
+这种方法，a)减少参数更新的方差，这样可以得到更加稳定的收敛结果；b)可以利用最新的深度学习库中高度优化的矩阵优化方法，高效地求解每个小批量数据的梯度。通常，小批量数据的大小在50到256之间，也可以根据不同的应用有所变化。
+
+在代码中，不是在所有样本上做迭代，我们现在只是在大小为50的小批量数据上做迭代：
+
+    for i in range(nb_epochs):
+        np.random.shuffle(data)
+        for batch in get_batches(data, batch_size=50):
+            params_grad = evaluate_gradient(loss_function, batch, params)
+            params = params - learning_rate * params_grad
+
+## 引用文献 
+
+1. 周志华《机器学习》
+2. [梯度下降优化算法综述](https://blog.csdn.net/google19890102/article/details/69942970)
+
+
