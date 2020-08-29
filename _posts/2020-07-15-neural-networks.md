@@ -10,9 +10,7 @@ categories: machine-learning
 - [2 感知机与多层网络](#感知机与多层网络)
 - [3 误差逆传播算法](#误差逆传播算法)
 - [4 全局最小与局部极小](#全局最小与局部极小)
-- [5 激活函数](#激活函数)
-- [6 损失函数](#损失函数)
-- [7 优化器](#优化器)
+- [5 优化器](#优化器)
 
 神经网络的定义[Kohonen, 1988]：
 
@@ -57,7 +55,7 @@ $$ \Delta w_i = \eta (y - \hat y) x_i $$,
 
 注意，“前馈” 并不意味着网络中信号不能向后传，而是指网络拓扑结构上不存在环或回路。
 
-### 例：两层神经网络模型
+### 例：使用两层神经网络模型进行三分类
 
 * 用 Sigmoid, ReLU 作为激活函数
 * 分类时用交叉熵作为损失函数
@@ -73,7 +71,26 @@ h_1 = ReLU(z_1) \quad & h_2 = ReLU(z_2) & h_3 = ReLU(z_3) \\
 L_{ce}(\hat y, y) = -\sum_{j=1}^k y_j \log \hat y_j
 $$
 
+隐层使用整流/修正线性单元 ReLU 作为激活函数： 
 
+$$ ReLU(x) = max\{x, 0\} \\
+   ReLU'(x) = 1[x>0] = sign(ReLU(x)) $$
+
+输出层使用 softmax 函数作为激活函数，其将在实数范围内的 $$\theta_i$$ 映射到 [0,1] 范围内，得到样本属于各个类的概率。设分类数为 K，softmax 函数的表达式为：
+
+$$ S_i = \frac {e^{z_i}} {\sum_{i=1}^K e_{z_i}} \in [0,1], \quad
+                  \sum_i  S_i = 1, \quad
+                  i = 1, 2, \dots, K $$
+
+与 softmax 对应的交叉熵损失也称为 softmax loss，表达式为：
+
+$$ L = - \sum_{i=1}^K y_i \log S_i, \quad, i = 1, 2, \dots, K $$
+
+其中 $$y_i$$ 为真实类别的概率，只有一个值是 1 其它值是 0，$$S_i$$ 为预测的概率。当预测概率中和真实类别对应的分量越接近1，$$- log S_i$$ 越小，即损失越小。
+
+例如，若真实类别为 [0, 0, 1]，预测的类别概率为 [0.3, 0.3, 0.4]，则损失为
+
+$$ L(\theta) = - (0 \times \log(0.3) + 0 \times \log(0.3) + 1 \times log(0.4)) = - \log(0.4) $$
 
 ## 误差逆传播算法
 
@@ -174,31 +191,8 @@ $$ E = \lambda \frac 1 m \sum_{k=1}^m E_k + (1-\lambda) \sum_i w_i^2 $$
 
 此外，*遗传算法（genetic algorithms）* [Goldberg, 1989] 也常用来训练神经网络以更好地逼近全局最小。需注意的是，上述用于跳出局部极小的技术大多是启发式，理论上尚缺乏保障。
 
-## 激活函数
-
-### 整流/修正线性单元ReLU
-
-$$ ReLU(x) = max\{x, 0\} \\
-   ReLU'(x) = 1[x>0] = sign(ReLU(x)) $$
-
-## 损失函数
-
-#### Softmax: 将给定的任意一组值映射成一个概率分布
-
-$$ \sigma(\bf z) = [\frac {e^{z_1}} {\sum_{k=1}^K e_{z_k}}, 
-                  \frac {e^{z_2}} {\sum_{k=1}^K e_{z_k}},
-                  \dots,
-                  \frac {e^{z_K}} {\sum_{k=1}^K e_{z_k}}] $$
-
-![Softmax](/assets/images/2008/softmax.png#center){:width='200px'}
 
 #### 负对数似然损失函数
-
-$$ L(\bf y, f(\bf x, \theta)) = - \sum_{c=1}^C y_c \log f_c(\bf x, \theta) $$
-
-例：对于一个三分类问题，真实类别为 [0, 0, 1]，预测的类别概率为 [0.3, 0.3, 0.4]，则
-
-$$ L(\theta) = - (0 \times \log(0.3) + 0 \times \log(0.3) + 1 \times log(0.4)) = - \log(0.4) $$
 
 ## 优化器
 
@@ -275,9 +269,8 @@ $$ \theta = \theta - \eta \cdot \nabla_\theta J( \theta; x^{(i:i+n)}; y^{(i:i+n)
             params_grad = evaluate_gradient(loss_function, batch, params)
             params = params - learning_rate * params_grad
 
-## 引用文献 
+## 文献 
 
 1. 周志华《机器学习》
 2. [梯度下降优化算法综述](https://blog.csdn.net/google19890102/article/details/69942970)
-
-
+3. [卷积神经网络系列之softmax，softmax loss和cross entropy的讲解](https://blog.csdn.net/u014380165/article/details/77284921)
