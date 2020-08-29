@@ -11,6 +11,7 @@ categories: machine-learning
 - [3 误差逆传播算法](#误差逆传播算法)
 - [4 全局最小与局部极小](#全局最小与局部极小)
 - [5 优化器](#优化器)
+- [6 卷积神经网络](#卷积神经网络)
 
 神经网络的定义[Kohonen, 1988]：
 
@@ -187,8 +188,6 @@ $$ E = \lambda \frac 1 m \sum_{k=1}^m E_k + (1-\lambda) \sum_i w_i^2 $$
 
 第三种策略，使用 *随机梯度下降* 。与标准梯度下降法精确计算梯度不同，随机梯度下降法在计算梯度时加入了随机因素。于是，即使陷入局部极小点，它计算出的梯度仍可能不为零，这样就有机会跳出局部极小继续搜索。
 
-    Q：随机梯度下降在计算梯度时加入了什么随机因素？如果加入的随机因素足以使函数跳到其它局部极小，是否会引起震荡？
-
 此外，*遗传算法（genetic algorithms）* [Goldberg, 1989] 也常用来训练神经网络以更好地逼近全局最小。需注意的是，上述用于跳出局部极小的技术大多是启发式，理论上尚缺乏保障。
 
 
@@ -269,8 +268,36 @@ $$ \theta = \theta - \eta \cdot \nabla_\theta J( \theta; x^{(i:i+n)}; y^{(i:i+n)
             params_grad = evaluate_gradient(loss_function, batch, params)
             params = params - learning_rate * params_grad
 
+## 卷积神经网络
+
+Up to this point, we have organized pattern features as vectors. Generally, this assumes that the form of those features has been specified (i.e., “engineered” by a human designer) and extracted from images prior to being input to a neural network . But one of the strengths of neural networks is that they are capable of learning pattern features directly from training data. What we would like to do is input a set of training images directly into a neural network, and have the network learn the necessary features *on its own*. One way to do this would be to convert images to vectors directly by organizing the pixels based on a linear index, and then letting each element (pixel) of the linear index be an element of the vector. However, this approach does not **utilize any spatial relationships that may exist between pixels in an image** , such as pixel arrangements into corners, the presence of edge segments, and other features that may help to differentiate one image from another. In this section, we present a class of neural networks called *deep convolutional neural networks* (*CNNs* or *ConvNets* for short) that accept images as inputs and are ideally suited for automatic learning and image classification. In order to differentiate between CNNs and the neural nets we studied in Section 12.5, we will refer to the latter as “fully connected” neural networks.
+
+
+<figure>
+    <img src="/assets/images/2008/CNN.png" />
+</figure>
+
+A key difference between this architecture and the neural net architectures we studied in the previous section is that **inputs to CNNs are 2-D arrays (images), while inputs to our fully connected neural networks are vectors** .
+
+Another major difference is in the way in which layers are connected. In a fully connected neural net, we feed the output of **every** neuron in a layer directly into the input of **every** neuron in the next layer. By contrast, in a CNN we feed into every input of a layer, a **single** value, determined by the convolution (hence the name convolutional neural net) over a spatial neighborhood in the output of the previous layer. Therefore, **CNNs are not fully connected** in the sense defined in the last section. Another difference is that the 2-D arrays from one layer to the next are **subsampled to reduce sensitivity to translational variations** in the input.
+
+These remarks are summarized in Fig. 12.40, the leftmost part of which shows a neighborhood at one location in the input image, which is called a *receptive field* in CNN terminology. The number of spatial increments by which a receptive field is moved is called the *stride*. In CNNs, an important **motivations for using strides greater than one** is **data reduction**. Another important motivation is **as a substitute for subsampling** which, as we discuss below, is used **to reduce system sensitivity to spatial translation** .
+
+This terminology *feature map* is motivated by the fact that the role performed by convolution is to extract features such as edges, points, and blobs from the input. The same weights and a single bias are used to generate the convolution (feature map) values corresponding to all locations of the receptive field in the input image. This is done to **cause the same feature to be detected at all points in the image** . Using the same weights and bias for this purpose is called *weight (or parameter) sharing* .
+
+Figure 12.40 shows **three feature maps in the first layer of the network** . The other two feature maps are generated in the manner just explained, but using a different set of weights and bias for each feature map. Because each set of weights and bias is different, each feature map generally will contain a different set of features, all extracted from the same input image. The feature maps are referred to collectively as a *convolutional layer* . Thus, the CNN in Fig. 12.40 has two convolutional layers.
+
+The process after convolution and activation is *subsampling* (also called *pooling* ), which is motivated by a model of the mammal visual cortex proposed by Hubel and Wiesel [1959]. Their findings suggest that parts of the visual cortex consist of *simple* and *complex* cells. The **simple cells perform feature extraction**, while the **complex cells combine (aggregate) those features into a more meaningful whole** . You can think of the results of subsampling as producing *pooled feature maps* . The pooled feature maps are referred to collectively as a *pooling layer* .
+
+To see **how these multiple inputs to the second layer are handled** , we consider the next pooled feature map input and perform the same procedure (convolution, plus bias, plus activation) for every feature map in the second layer, using yet another set of different kernels and biases. When we are finished, we will have **generated three values for the same location in every feature map** , with one value coming from the corresponding location in each of the three inputs. The question now is: How do we combine these three individual values into one? The answer lies in the fact that convolution is a linear process, from which it follows that **the three individual values are combined into one by superposition (that is, by adding them)** .
+
+In the first layer, we had one input image and three feature maps, so we needed three kernels to complete all required convolutions. In the second layer, we have three inputs and seven feature maps, so the total number of kernels (and biases) needed is 3 × 7 = 21.
+
+As usual, the ultimate objective is to use features for classification, so we need a classifier. As Fig. 12.40 shows, in a CNN we perform classification by feeding the value of the last pooled layer into a fully connected neural net. But the outputs of a CNN are 2-D arrays (i.e., filtered images of reduced resolution), whereas the inputs to a fully connected net are vectors. Therefore, we have to **vectorize the 2-D pooled feature maps in the last layer** . We do this using linear indexing.
+
 ## 文献 
 
 1. 周志华《机器学习》
 2. [梯度下降优化算法综述](https://blog.csdn.net/google19890102/article/details/69942970)
 3. [卷积神经网络系列之softmax，softmax loss和cross entropy的讲解](https://blog.csdn.net/u014380165/article/details/77284921)
+4. [Digital Image Processing, 4th Edition](https://www.pearson.com/store/p/digital-image-processing/P100001327718/9780133356724)
